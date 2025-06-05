@@ -91,6 +91,45 @@ export const getUsuarioPorEmail = async (email: string): Promise<any | null> => 
   }
 };
 
+// Función para crear una nueva sala
+export const crearSala = async (nombre: string) => {
+  try {
+    const nuevaSala = await addDoc(collection(db, 'salas'), {
+      nombre: nombre,
+      creadaEn: new Date()
+    });
+    console.log('Sala creada con ID:', nuevaSala.id);
+    return nuevaSala.id;
+  } catch (e) {
+    console.error('Error al crear la sala:', e);
+    throw e;
+  }
+};
+
+// Función para eliminar una sala por nombre
+export const eliminarSalaPorNombre = async (nombre: string) => {
+  try {
+    const q = query(collection(db, 'salas'), where('nombre', '==', nombre));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      console.log('No se encontró la sala');
+      return false;
+    }
+
+    snapshot.forEach(async (docu) => {
+      await deleteDoc(doc(db, 'salas', docu.id));
+      console.log('Sala eliminada:', docu.id);
+    });
+
+    return true;
+  } catch (e) {
+    console.error('Error al eliminar sala:', e);
+    return false;
+  }
+};
+
+
 
 
 
