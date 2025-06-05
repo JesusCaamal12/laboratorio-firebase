@@ -3,17 +3,20 @@ import { addDoc, collection, deleteDoc, doc, getDocs, query, where } from 'fireb
 import { db } from './firebase'; // ya tienes la conexión a Firebase
 
 // Función para insertar un usuario
-export const insertarUsuario = async (email: string, password: string) => {
+// db.ts
+export const insertarUsuario = async (email: string, password: string, rol: string) => {
   try {
     const docRef = await addDoc(collection(db, 'usuarios'), {
       email: email,
-      password: password
+      password: password,
+      rol: rol
     });
     console.log('Usuario agregado con ID: ', docRef.id);
   } catch (e) {
     console.error('Error al agregar el usuario: ', e);
   }
 };
+
 
 // Función para insertar un sensor
 export const insertSensor = async (sala: string, tipo: string, valor: string) => {
@@ -71,5 +74,23 @@ export const existeUsuario = async (email: string): Promise<boolean> => {
     return false;
   }
 };
+
+// Función para obtener un usuario por email
+export const getUsuarioPorEmail = async (email: string): Promise<any | null> => {
+  try {
+    const q = query(collection(db, 'usuarios'), where('email', '==', email));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) return null;
+
+    const docSnap = querySnapshot.docs[0];
+    return docSnap.data(); // o también podrías retornar { id: docSnap.id, ...docSnap.data() }
+  } catch (e) {
+    console.error('Error al buscar usuario: ', e);
+    return null;
+  }
+};
+
+
 
 

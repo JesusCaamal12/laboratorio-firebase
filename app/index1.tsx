@@ -1,7 +1,23 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Alert, BackHandler, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function Home() {
+  const [rol, setRol] = useState('');
+  const [email, setEmail] = useState('');
+
+  useEffect(() => {
+    const cargarUsuario = async () => {
+      const data = await AsyncStorage.getItem('usuario');
+      if (data) {
+        const usuario = JSON.parse(data);
+        setRol(usuario.rol);
+        setEmail(usuario.email);
+      }
+    };
+    cargarUsuario();
+  }, []);
 
   const salirApp = () => {
     Alert.alert('Salir', '¿Estás seguro que deseas salir?', [
@@ -10,16 +26,25 @@ export default function Home() {
     ]);
   };
 
+  const agregarSala = () => {
+    Alert.alert('Función', 'Aquí podrías abrir un modal para agregar sala');
+  };
+
+  const eliminarSala = () => {
+    Alert.alert('Función', 'Aquí podrías seleccionar y eliminar salas');
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Bienvenido al Monitoreo de Laboratorio</Text>
+      <Text style={styles.subtitle}>Rol: {rol}</Text>
 
       <Image
         source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3022/3022768.png' }}
         style={styles.labImage}
       />
 
-      <Text style={styles.subtitle}>Seleccióna una sala para verificar: </Text>
+      <Text style={styles.subtitle}>Selecciona una sala para verificar:</Text>
 
       <Link href="/sala1" asChild>
         <Pressable style={styles.button}>
@@ -32,6 +57,19 @@ export default function Home() {
           <Text style={styles.buttonText}>Sala 2 - Experimentación</Text>
         </Pressable>
       </Link>
+
+      {/* Solo si es admin, muestra opciones de agregar/eliminar salas */}
+      {rol === 'admin' && (
+        <>
+          <Pressable style={[styles.button, { backgroundColor: '#2980b9' }]} onPress={agregarSala}>
+            <Text style={styles.buttonText}>Agregar nueva sala</Text>
+          </Pressable>
+
+          <Pressable style={[styles.button, { backgroundColor: '#c0392b' }]} onPress={eliminarSala}>
+            <Text style={styles.buttonText}>Eliminar sala</Text>
+          </Pressable>
+        </>
+      )}
 
       <Pressable style={[styles.button, { backgroundColor: '#e74c3c' }]} onPress={salirApp}>
         <Text style={styles.buttonText}>Salir de la app</Text>
@@ -84,3 +122,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
