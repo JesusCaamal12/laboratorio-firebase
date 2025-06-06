@@ -1,8 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Picker } from '@react-native-picker/picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { actualizarEstadoSensor, agregarSensorASala, limpiarSensoresDeSala, obtenerSensoresPorSala } from '../../database/db';
 
 export default function NumSala() {
@@ -13,6 +12,37 @@ export default function NumSala() {
   const [modelo, setModelo] = useState('');
   const [estado, setEstado] = useState<'activo' | 'inactivo'>('activo');
   const [usuario, setUsuario] = useState<any>(null);
+  const [intervalo, setIntervalo] = useState<NodeJS.Timeout | null>(null);
+
+  const iniciarGeneracionAutomatica = () => {
+    if (intervalo) {
+      Alert.alert('Ya iniciado', 'La generación automática ya está corriendo.');
+      return;
+    }
+
+    const tipos = ['temperatura', 'humedad', 'gas'];
+    const modelos = ['X100', 'Y200', 'Z300', 'T400'];
+
+    const nuevoIntervalo = setInterval(async () => {
+      const tipoAleatorio = tipos[Math.floor(Math.random() * tipos.length)];
+      const valorAleatorio = parseFloat((Math.random() * 100).toFixed(2));
+      const modeloAleatorio = modelos[Math.floor(Math.random() * modelos.length)];
+
+      await agregarSensorASala(
+        nombre as string,
+        tipoAleatorio,
+        valorAleatorio,
+        modeloAleatorio,
+        'activo' // estado fijo
+      );
+
+      cargarSensores();
+    }, 5000);
+
+    setIntervalo(nuevoIntervalo);
+  };
+
+
 
   const cargarSensores = async () => {
     const data = await obtenerSensoresPorSala(nombre as string);
@@ -67,7 +97,7 @@ export default function NumSala() {
       ]
     );
   };
-
+  
   const toggleEstadoSensor = async (sensorId: string, estadoActual: string) => {
     const nuevoEstado = estadoActual === 'activo' ? 'inactivo' : 'activo';
     await actualizarEstadoSensor(nombre as string, sensorId, nuevoEstado);
@@ -75,17 +105,30 @@ export default function NumSala() {
   };
 
 
-  const renderItem = ({ item }: any) => (
-    <View style={styles.sensorItem}>
-      <Text style={styles.sensorTipo}>{item.tipo.toUpperCase()}</Text>
-      <Text>Modelo: {item.modelo}</Text>
-      <Text>Valor: {item.valor}</Text>
-      <Text>Estado: {item.estado}</Text>
-      <Text>Sala: {nombre}</Text>
-      <Text>
-        Fecha: {new Date(item.fecha?.seconds * 1000).toLocaleString()}
-      </Text>
-           {usuario?.rol === 'admin' && (
+const formatearValor = (tipo: string, valor: number) => {
+  switch (tipo) {
+    case 'temperatura':
+      return `${valor.toFixed(2)} °C`;
+    case 'humedad':
+      return `${valor.toFixed(2)} %`;
+    case 'gas':
+      return valor > 50 ? 'Se ha detectado gas' : 'Sin gas detectado';
+    default:
+      return valor.toString();
+  }
+};
+
+const renderItem = ({ item }: any) => (
+  <View style={styles.sensorItem}>
+    <Text style={styles.sensorTipo}>{item.tipo.toUpperCase()}</Text>
+    <Text>Modelo: {item.modelo}</Text>
+    <Text>Valor: {formatearValor(item.tipo, item.valor)}</Text>
+    <Text>Estado: {item.estado}</Text>
+    <Text>Sala: {nombre}</Text>
+    <Text>
+      Fecha: {new Date(item.fecha?.seconds * 1000).toLocaleString()}
+    </Text>
+    {usuario?.rol === 'admin' && (
       <Pressable
         onPress={() => toggleEstadoSensor(item.id, item.estado)}
         style={[
@@ -97,9 +140,10 @@ export default function NumSala() {
           Cambiar a {item.estado === 'activo' ? 'inactivo' : 'activo'}
         </Text>
       </Pressable>
-           )}
-    </View>
-  );
+    )}
+  </View>
+);
+
 
   return (
     <View style={styles.container}>
@@ -107,39 +151,27 @@ export default function NumSala() {
 
       {usuario?.rol === 'admin' && (
         <View style={styles.inputContainer}>
-          <TextInput
-            placeholder="Tipo (temperatura, gas...)"
-            value={tipoSensor}
-            onChangeText={setTipoSensor}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Valor"
-            keyboardType="numeric"
-            value={valor}
-            onChangeText={setValor}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Modelo del sensor"
-            value={modelo}
-            onChangeText={setModelo}
-            style={styles.input}
-          />
-          <Picker
-            selectedValue={estado}
-            onValueChange={(value) => setEstado(value)}
-            style={styles.input}
-          >
-            <Picker.Item label="Activo" value="activo" />
-            <Picker.Item label="Inactivo" value="inactivo" />
-          </Picker>
-
-          <Pressable onPress={handleAgregarSensor} style={styles.boton}>
-            <Text style={{ color: 'white' }}>Agregar Sensor</Text>
+          <Pressable onPress={iniciarGeneracionAutomatica} style={styles.boton}>
+            <Text style={{ color: 'white' }}>Empezar a monitorear</Text>
           </Pressable>
+
+          <Pressable
+            onPress={() => {
+              if (intervalo) {
+                clearInterval(intervalo);
+                setIntervalo(null);
+                Alert.alert('Detenido', 'La generación automática se ha detenido.');
+              }
+            }}
+            style={[styles.boton, { backgroundColor: '#cc0000', marginTop: 10 }]}
+          >
+            <Text style={{ color: 'white' }}>Detener monitoreo</Text>
+          </Pressable>
+
         </View>
       )}
+
+
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
         <Pressable
@@ -150,16 +182,16 @@ export default function NumSala() {
         >
           <Text style={{ color: 'white', textAlign: 'center' }}>Ver Historial</Text>
         </Pressable>
-             {usuario?.rol === 'admin' && (
-        <Pressable
-          onPress={handleLimpiarSensores}
-          style={[styles.boton, { flex: 1, marginLeft: 5, backgroundColor: '#990000' }]}
-        >
-          <Text style={{ color: 'white', textAlign: 'center' }}>Limpiar Sensores</Text>
-        </Pressable>
-             )}
+        {usuario?.rol === 'admin' && (
+          <Pressable
+            onPress={handleLimpiarSensores}
+            style={[styles.boton, { flex: 1, marginLeft: 5, backgroundColor: '#990000' }]}
+          >
+            <Text style={{ color: 'white', textAlign: 'center' }}>Limpiar Sensores</Text>
+          </Pressable>
+        )}
       </View>
-            
+
 
       <FlatList
         data={sensores}

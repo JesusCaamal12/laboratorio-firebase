@@ -5,7 +5,6 @@ import { Alert, BackHandler, FlatList, Pressable, StyleSheet, Text, TextInput, V
 import 'react-native-gesture-handler';
 import { crearSala, eliminarSala, obtenerSalas } from '../database/db';
 
-
 export default function Index1() {
   const [nombreSala, setNombreSala] = useState('');
   const [salas, setSalas] = useState<any[]>([]);

@@ -1,5 +1,5 @@
 // Importa Firestore y funciones necesarias
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, Timestamp, updateDoc, where, writeBatch } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { db } from './firebase'; // ya tienes la conexión a Firebase
 
 // Función para insertar un usuario
@@ -78,8 +78,6 @@ export const eliminarSala = async (id: string) => {
   }
 };
 
-//nuevo
-
 // Obtener sensores de una sala
 export const obtenerSensoresPorSala = async (salaId: string): Promise<any[]> => {
   try {
@@ -96,7 +94,7 @@ export const obtenerSensoresPorSala = async (salaId: string): Promise<any[]> => 
   }
 };
 
-// Agregar sensor a sala
+// Agregar sensor a sala nuevo
 export const agregarSensorASala = async (
   salaId: string,
   tipo: string,
@@ -106,27 +104,60 @@ export const agregarSensorASala = async (
 ) => {
   try {
     const sensoresRef = collection(db, 'salas', salaId, 'sensores');
-    const docRef = await addDoc(sensoresRef, {
-      tipo,
-      valor,
-      modelo,
-      estado,
-      fecha: new Date()
-    });
 
-    // Registrar en historial
-    await registrarCambioEnHistorial(
-      salaId,
-      docRef.id,
-      'agregado',
-      estado
-    );
+    // Buscar sensor existente por tipo
+    const q = query(sensoresRef, where('tipo', '==', tipo));
+    const querySnapshot = await getDocs(q);
 
-    console.log('Sensor agregado y registrado en historial');
+    if (!querySnapshot.empty) {
+      // Sensor existe
+      const sensorDoc = querySnapshot.docs[0];
+      const sensorRef = doc(db, 'salas', salaId, 'sensores', sensorDoc.id);
+
+      const modeloExistente = sensorDoc.data().modelo;
+      const valorExistente = sensorDoc.data().valor;
+
+      await updateDoc(sensorRef, {
+        valor,
+        estado,
+        fecha: new Date()
+      });
+
+      // Ahora pasamos valor y modelo para registrar
+      const tipoExistente = sensorDoc.data().tipo;
+
+      await registrarCambioEnHistorial(
+        salaId,
+        sensorDoc.id,
+        'actualizado',
+        estado,
+        valor,
+        modeloExistente,
+        tipoExistente
+      );
+
+
+      console.log('Sensor actualizado y registrado en historial');
+    } else {
+      // Crear nuevo sensor
+      const docRef = await addDoc(sensoresRef, {
+        tipo,
+        valor,
+        modelo,
+        estado,
+        fecha: new Date()
+      });
+
+      await registrarCambioEnHistorial(salaId, docRef.id, 'agregado', estado, valor, modelo);
+
+      console.log('Sensor agregado y registrado en historial');
+    }
+
   } catch (e) {
-    console.error('Error al agregar sensor: ', e);
+    console.error('Error al agregar o actualizar sensor: ', e);
   }
 };
+
 
 
 // actualizar estado
@@ -138,12 +169,25 @@ export const actualizarEstadoSensor = async (
 ) => {
   try {
     const sensorRef = doc(db, 'salas', salaId, 'sensores', sensorId);
+
+    // Obtener datos actuales del sensor
+    const sensorSnap = await getDoc(sensorRef);
+    const sensorData = sensorSnap.data();
+
+    if (!sensorData) {
+      console.error('No se encontró el sensor.');
+      return;
+    }
+
     await updateDoc(sensorRef, { estado: nuevoEstado });
 
-    // Guardar en historial
+    // Guardar en historial con más datos
     const historialRef = collection(db, 'salas', salaId, 'historial');
     await addDoc(historialRef, {
       sensorId,
+      tipo: sensorData.tipo,
+      modelo: sensorData.modelo,
+      valor: sensorData.valor,
       tipoCambio: 'actualización',
       nuevoEstado,
       fecha: new Date()
@@ -155,21 +199,22 @@ export const actualizarEstadoSensor = async (
   }
 };
 
+
 //limpiar
 export const limpiarSensoresDeSala = async (salaId: string) => {
   try {
     const sensoresRef = collection(db, 'salas', salaId, 'sensores');
     const querySnapshot = await getDocs(sensoresRef);
-    const batch = writeBatch(db);
 
-    querySnapshot.forEach((doc) => {
-      batch.delete(doc.ref);
+    const deletePromises = querySnapshot.docs.map((sensorDoc) => {
+      const sensorRef = doc(db, 'salas', salaId, 'sensores', sensorDoc.id);
+      return deleteDoc(sensorRef);
     });
 
-    await batch.commit();
-    console.log('Sensores eliminados, historial intacto');
+    await Promise.all(deletePromises);
+    console.log('Todos los sensores eliminados de la sala');
   } catch (e) {
-    console.error('Error al limpiar sensores: ', e);
+    console.error('Error al limpiar los sensores de la sala:', e);
   }
 };
 
@@ -181,25 +226,31 @@ export const obtenerHistorialPorSala = async (salaId: string) => {
     const q = query(historialRef, orderBy('fecha', 'desc'));
     const querySnapshot = await getDocs(q);
 
-
     const historialConNombre = await Promise.all(
       querySnapshot.docs.map(async (docHistorial) => {
         const data = docHistorial.data();
+        console.log('Historial data:', data);
         let nombreSensor = 'Desconocido';
 
         if (data.sensorId) {
+          console.log('Buscando sensor con ID:', data.sensorId);
           const sensorRef = doc(db, 'salas', salaId, 'sensores', data.sensorId);
           const sensorSnap = await getDoc(sensorRef);
           if (sensorSnap.exists()) {
             const sensorData = sensorSnap.data();
+            console.log('Sensor encontrado:', sensorData);
             nombreSensor = sensorData.nombre || sensorData.tipo || 'Sin nombre';
+          } else {
+            console.warn(`Sensor con ID ${data.sensorId} no encontrado`);
           }
         }
 
         return {
           id: docHistorial.id,
           ...data,
-          nombreSensor
+          nombreSensor,
+          valor: data.valor ?? null,
+          modelo: data.modelo ?? null
         };
       })
     );
@@ -210,26 +261,41 @@ export const obtenerHistorialPorSala = async (salaId: string) => {
     return [];
   }
 };
-//Registro de cambio
+
+//Registro de cambio nuevo
 export const registrarCambioEnHistorial = async (
   salaId: string,
   sensorId: string,
   tipoCambio: string,
-  nuevoEstado: string
+  estado: string,
+  valor: number,
+  modelo: string,
+  tipo?: string
 ) => {
   try {
     const historialRef = collection(db, 'salas', salaId, 'historial');
-    await addDoc(historialRef, {
+
+    const historialData: any = {
       sensorId,
       tipoCambio,
-      nuevoEstado,
+      estado,
+      valor,
+      modelo,
       fecha: new Date()
-    });
-    console.log('Cambio registrado en historial');
+    };
+
+    if (tipo !== undefined) {
+      historialData.tipo = tipo;
+    }
+
+    await addDoc(historialRef, historialData);
   } catch (e) {
-    console.error('Error al registrar en historial: ', e);
+    console.error('Error al registrar en historial:', e);
   }
 };
+
+
+
 
 
 

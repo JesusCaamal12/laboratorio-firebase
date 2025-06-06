@@ -34,4 +34,23 @@ export const styles = StyleSheet.create({
   sensorText: {
     fontSize: 16,
   },
+
+  header: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 20
+},
+iconos: {
+  flexDirection: 'row',
+  gap: 10
+},
+icono: {
+  marginHorizontal: 5
+},
+titulo: {
+  fontSize: 22,
+  fontWeight: 'bold'
+}
+
 });

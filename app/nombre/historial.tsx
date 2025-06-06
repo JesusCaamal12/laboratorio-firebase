@@ -11,7 +11,7 @@ export default function HistorialSala() {
     useEffect(() => {
         const cargarHistorial = async () => {
             const data = await obtenerHistorialPorSala(nombre as string);
-            console.log('Historial cargado:', data); 
+            console.log('Historial cargado:', data);
             setHistorial(data);
         };
         cargarHistorial();
@@ -23,14 +23,15 @@ export default function HistorialSala() {
             <View style={styles.sensorItem}>
                 <Text style={styles.sensorTipo}>Sensor: {item.nombreSensor}</Text>
                 <Text>Tipo de cambio: {item.tipoCambio}</Text>
-                <Text>Nuevo estado: {item.nuevoEstado}</Text>
+                <Text>Nuevo estado: {item.nuevoEstado ?? item.estado ?? 'No disponible'}</Text>
+                <Text>Valor: {item.valor !== null ? item.valor : 'No disponible'}</Text>
+                <Text>Modelo: {item.modelo ?? 'No disponible'}</Text>
                 <Text>
-                    Fecha: {item.fecha && item.fecha.toDate
+                    Fecha:{' '}
+                    {item.fecha && typeof item.fecha.toDate === 'function'
                         ? item.fecha.toDate().toLocaleString()
                         : 'Fecha no disponible'}
                 </Text>
-
-
             </View>
         );
     };
