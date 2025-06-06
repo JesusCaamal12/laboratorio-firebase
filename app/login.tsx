@@ -8,48 +8,42 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const iniciarSesion = async () => {
-    if (email.trim() === '' || password.trim() === '') {
-      Alert.alert('Error', 'Ingresa correo y contraseña');
+const iniciarSesion = async () => {
+  if (email.trim() === '' || password.trim() === '') {
+    Alert.alert('Error', 'Ingresa correo y contraseña');
+    return;
+  }
+
+  try {
+    const usuario = await getUsuarioPorEmail(email.trim().toLowerCase());
+
+    if (!usuario) {
+      Alert.alert('Usuario no encontrado');
       return;
     }
 
-    try {
-      const usuario = await getUsuarioPorEmail(email);
-      if (!usuario) {
-        Alert.alert('Usuario no encontrado');
-        return;
-      }
-
-      if (usuario.password !== password) {
-        Alert.alert('Contraseña incorrecta');
-        return;
-      }
-
-      // Lógica según el rol
-      if (usuario.rol === 'admin') {
-        await AsyncStorage.setItem('usuario', JSON.stringify({
-          email: usuario.email,
-          rol: usuario.rol
-        }));
-
-        router.replace('/index1'); // Ajusta la ruta si tienes una pantalla para admin
-      } else if (usuario.rol === 'invitado') {
-        await AsyncStorage.setItem('usuario', JSON.stringify({
-          email: usuario.email,
-          rol: usuario.rol
-        }));
-
-        router.replace('/index1'); // Ajusta la ruta si tienes una pantalla para invitados
-      } else {
-        Alert.alert('Rol no reconocido', 'Contacta con el administrador');
-      }
-
-    } catch (error) {
-      Alert.alert('Error al iniciar sesión');
-      console.error(error);
+    if (usuario.password !== password.trim()) {
+      Alert.alert('Contraseña incorrecta');
+      return;
     }
-  };
+
+    const { rol } = usuario;
+
+    await AsyncStorage.setItem('usuario', JSON.stringify({
+      email: usuario.email,
+      rol: usuario.rol
+    }));
+
+    // Redirección a ruta única
+    router.replace('/index1');
+
+  } catch (error) {
+    Alert.alert('Error al iniciar sesión');
+    console.error('Error al iniciar sesión:', error);
+  }
+};
+
+
 
 
   return (
