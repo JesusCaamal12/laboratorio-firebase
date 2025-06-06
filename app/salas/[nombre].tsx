@@ -2,27 +2,57 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { actualizarEstadoSensor, agregarSensorASala, limpiarSensoresDeSala, obtenerSensoresPorSala } from '../../database/db';
+import {
+  actualizarEstadoSensor,
+  agregarSensorASala,
+  limpiarSensoresDeSala,
+  obtenerSensoresPorSala,
+} from '../../database/db';
 
+// ---------------
+// 1) Variable global al módulo para el intervalo
+// ---------------
+let intervaloGlobal: NodeJS.Timeout | null = null;
 export default function NumSala() {
   const { nombre } = useLocalSearchParams(); // nombre de la sala
   const [sensores, setSensores] = useState<any[]>([]);
-  const [tipoSensor, setTipoSensor] = useState('');
   const [usuario, setUsuario] = useState<any>(null);
-  const [intervalo, setIntervalo] = useState<NodeJS.Timeout | null>(null);
   const [monitoreoActivo, setMonitoreoActivo] = useState(false);
 
+  // ---------------  
+  // 2) Carga inicial de sensores y usuario (sin limpiar intervaloGlobal en desmontaje)
+  // ---------------
+  useEffect(() => {
+    cargarSensores();
+    cargarUsuario();
+    // NO hacemos clearInterval aquí, para que si ya existía un intervaloGlobal, siga corriendo
+  }, []);
 
+  const cargarSensores = async () => {
+    const data = await obtenerSensoresPorSala(nombre as string);
+    setSensores(data);
+  };
+
+  const cargarUsuario = async () => {
+    const user = await AsyncStorage.getItem('usuario');
+    if (user) {
+      setUsuario(JSON.parse(user));
+    }
+  };
+
+  // ---------------  
+  // 3) Iniciar generación: guarda el setInterval en intervaloGlobal (si no existe)
+  // ---------------
   const iniciarGeneracionAutomatica = () => {
-    if (intervalo) {
+    if (intervaloGlobal) {
       Alert.alert('Ya iniciado', 'La generación automática ya está corriendo.');
       return;
     }
 
     Alert.alert('Inicio', 'La generación automática ha comenzado.');
-    setMonitoreoActivo(true); // Mostrar mensaje en pantalla
+    setMonitoreoActivo(true);
 
-    // Ocultar el mensaje después de 5 segundos
+    // Ocultar el mensaje de “iniciado” en 5 seg
     setTimeout(() => {
       setMonitoreoActivo(false);
     }, 5000);
@@ -30,7 +60,8 @@ export default function NumSala() {
     const tipos = ['temperatura', 'humedad', 'gas'];
     const modelos = ['X100', 'Y200', 'Z300', 'T400'];
 
-    const nuevoIntervalo = setInterval(async () => {
+    intervaloGlobal = setInterval(async () => {
+      // Genera datos aleatorios
       const tipoAleatorio = tipos[Math.floor(Math.random() * tipos.length)];
       const valorAleatorio = parseFloat((Math.random() * 100).toFixed(2));
       const modeloAleatorio = modelos[Math.floor(Math.random() * modelos.length)];
@@ -43,26 +74,19 @@ export default function NumSala() {
         'activo'
       );
 
+      // Refresca lista en pantalla
       cargarSensores();
     }, 3000);
-
-    setIntervalo(nuevoIntervalo);
   };
 
-  const cargarSensores = async () => {
-    const data = await obtenerSensoresPorSala(nombre as string);
-    setSensores(data);
-  };
-
-  useEffect(() => {
-    cargarSensores();
-    cargarUsuario();
-  }, []);
-
-  const cargarUsuario = async () => {
-    const user = await AsyncStorage.getItem('usuario');
-    if (user) {
-      setUsuario(JSON.parse(user));
+  // ---------------  
+  // 4) Detener monitoreo: limpia intervaloGlobal si existe
+  // ---------------
+  const detenerMonitoreo = () => {
+    if (intervaloGlobal) {
+      clearInterval(intervaloGlobal);
+      intervaloGlobal = null;
+      Alert.alert('Se ha detenido el monitoreo');
     }
   };
 
@@ -78,8 +102,8 @@ export default function NumSala() {
           onPress: async () => {
             await limpiarSensoresDeSala(nombre as string);
             cargarSensores();
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -89,7 +113,6 @@ export default function NumSala() {
     await actualizarEstadoSensor(nombre as string, sensorId, nuevoEstado);
     cargarSensores();
   };
-
 
   const formatearValor = (tipo: string, valor: number) => {
     switch (tipo) {
@@ -119,7 +142,7 @@ export default function NumSala() {
           onPress={() => toggleEstadoSensor(item.id, item.estado)}
           style={[
             styles.cambiarEstadoBoton,
-            { backgroundColor: item.estado === 'activo' ? '#cc3300' : '#339933' }
+            { backgroundColor: item.estado === 'activo' ? '#cc3300' : '#339933' },
           ]}
         >
           <Text style={styles.botonTexto}>
@@ -129,8 +152,6 @@ export default function NumSala() {
       )}
     </View>
   );
-
-
 
   return (
     <View style={styles.container}>
@@ -150,16 +171,7 @@ export default function NumSala() {
             <Text style={styles.botonTexto}>Empezar a Monitorear</Text>
           </Pressable>
 
-          <Pressable
-            onPress={() => {
-              if (intervalo) {
-                clearInterval(intervalo);
-                setIntervalo(null);
-                Alert.alert('Se ha detenido el monitoreo');
-              }
-            }}
-            style={styles.botonRojo}
-          >
+          <Pressable onPress={detenerMonitoreo} style={styles.botonRojo}>
             <Text style={styles.botonTexto}>Detener Monitoreo</Text>
           </Pressable>
         </View>
@@ -181,8 +193,15 @@ export default function NumSala() {
       </View>
     </View>
   );
-
 }
+
+export function detenerMonitoreoGlobal() {
+  if (intervaloGlobal) {
+    clearInterval(intervaloGlobal);
+    intervaloGlobal = null;
+  }
+}
+
 
 const styles = StyleSheet.create({
   container: {
@@ -225,7 +244,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     alignItems: 'center',
   },
-
   botonesContainer: {
     marginTop: 12,
     marginBottom: 8,

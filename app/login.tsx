@@ -35,7 +35,7 @@ const iniciarSesion = async () => {
     }));
 
     // Redirección a ruta única
-    router.replace('/index1');
+    router.replace('/drawer/index1');
 
   } catch (error) {
     Alert.alert('Error al iniciar sesión');
