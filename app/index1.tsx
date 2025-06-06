@@ -73,8 +73,9 @@ export default function Index1() {
   );
 
 
-  return (
-    <View style={styles.container}>
+return (
+  <View style={styles.container}>
+    <View>
       <Text style={styles.titulo}>Salas del Laboratorio</Text>
 
       {usuario?.rol === 'admin' && (
@@ -86,71 +87,120 @@ export default function Index1() {
             style={styles.input}
           />
           <Pressable onPress={handleCrearSala} style={styles.botonCrear}>
-            <Text style={{ color: 'white' }}>Crear Sala</Text>
+            <Text style={styles.botonTexto}>Crear</Text>
           </Pressable>
         </View>
       )}
-
 
       <FlatList
         data={salas}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 50 }}
+        contentContainerStyle={{ paddingBottom: 20 }}
       />
+    </View>
 
+    <View style={styles.footerButtons}>
       <Pressable
         onPress={async () => {
           await AsyncStorage.removeItem('usuario');
-          router.replace('/login'); // Asegúrate que esta ruta existe
+          router.replace('/login');
         }}
-        style={[styles.botonCrear, { backgroundColor: '#ff9900', marginTop: 10 }]}
+        style={styles.botonSecundario}
       >
-        <Text style={{ color: 'white', textAlign: 'center' }}>Cerrar sesión</Text>
+        <Text style={styles.botonTexto}>Cerrar sesión</Text>
       </Pressable>
 
       <Pressable
         onPress={() => BackHandler.exitApp()}
-        style={[styles.botonCrear, { backgroundColor: '#333', marginTop: 10 }]}
+        style={styles.botonSalir}
       >
-        <Text style={{ color: 'white', textAlign: 'center' }}>Salir de la App</Text>
+        <Text style={styles.botonTexto}>Salir de la App</Text>
       </Pressable>
     </View>
-  );
+  </View>
+);
+
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#f5f5f5' },
-  titulo: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  crearSalaContainer: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f5f7fa',
+    justifyContent: 'space-between',
+  },
+  titulo: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#2c3e50',
+  },
+  crearSalaContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
   input: {
     flex: 1,
     backgroundColor: 'white',
-    padding: 10,
-    borderRadius: 8,
+    padding: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#ccc'
+    borderColor: '#ccc',
+    fontSize: 16,
   },
   botonCrear: {
     backgroundColor: '#008080',
-    padding: 10,
-    borderRadius: 8,
-    justifyContent: 'center'
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+  },
+  botonTexto: {
+    color: 'white',
+    fontWeight: 'bold',
   },
   salaItem: {
     backgroundColor: 'white',
-    padding: 15,
-    marginBottom: 10,
-    borderRadius: 10,
-    elevation: 2
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    elevation: 3,
   },
-  salaNombre: { fontWeight: 'bold', fontSize: 16 },
-  salaDetalle: { color: '#666' },
+  salaNombre: {
+    fontWeight: 'bold',
+    fontSize: 18,
+    color: '#34495e',
+    marginBottom: 4,
+  },
+  salaDetalle: {
+    color: '#7f8c8d',
+    fontSize: 14,
+  },
   eliminarBtn: {
-    marginTop: 10,
-    backgroundColor: '#ff5555',
-    padding: 8,
-    borderRadius: 6,
-    alignItems: 'center'
+    marginTop: 12,
+    backgroundColor: '#e74c3c',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  footerButtons: {
+    gap: 10,
+    marginTop: 30,
+  },
+  botonSecundario: {
+    backgroundColor: '#ff9900',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  botonSalir: {
+    backgroundColor: '#34495e',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
   }
 });
+

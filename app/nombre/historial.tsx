@@ -22,7 +22,7 @@ export default function HistorialSala() {
         return (
             <View style={styles.sensorItem}>
                 <Text style={styles.sensorTipo}>Sensor: {item.nombreSensor}</Text>
-                <Text>Tipo de cambio: {item.tipoCambio}</Text>
+                <Text style={styles.textLine}>Tipo de cambio: {item.tipoCambio}</Text>
                 <Text>Nuevo estado: {item.nuevoEstado ?? item.estado ?? 'No disponible'}</Text>
                 <Text>Valor: {item.valor !== null ? item.valor : 'No disponible'}</Text>
                 <Text>Modelo: {item.modelo ?? 'No disponible'}</Text>
@@ -51,19 +51,38 @@ export default function HistorialSala() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 20, backgroundColor: '#eef' },
+    container: {
+        flex: 1,
+        padding: 20,
+        backgroundColor: '#f7f9fc', // más limpio que #eef
+    },
     titulo: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: 'bold',
-        marginBottom: 20,
-        textAlign: 'center'
+        color: '#333',
+        marginBottom: 25,
+        textAlign: 'center',
     },
     sensorItem: {
-        backgroundColor: 'white',
-        padding: 15,
-        marginBottom: 10,
-        borderRadius: 10,
-        elevation: 2
+        backgroundColor: '#fff',
+        padding: 20,
+        marginBottom: 15,
+        borderRadius: 16, // esquinas más redondeadas
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+        elevation: 4,
     },
-    sensorTipo: { fontWeight: 'bold', fontSize: 16, marginBottom: 5 }
+    sensorTipo: {
+        fontWeight: 'bold',
+        fontSize: 18,
+        marginBottom: 10,
+        color: '#2c3e50',
+    },
+    textLine: {
+        fontSize: 14,
+        color: '#555',
+        marginBottom: 4,
+    },
 });

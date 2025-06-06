@@ -8,17 +8,24 @@ export default function NumSala() {
   const { nombre } = useLocalSearchParams(); // nombre de la sala
   const [sensores, setSensores] = useState<any[]>([]);
   const [tipoSensor, setTipoSensor] = useState('');
-  const [valor, setValor] = useState('');
-  const [modelo, setModelo] = useState('');
-  const [estado, setEstado] = useState<'activo' | 'inactivo'>('activo');
   const [usuario, setUsuario] = useState<any>(null);
   const [intervalo, setIntervalo] = useState<NodeJS.Timeout | null>(null);
+  const [monitoreoActivo, setMonitoreoActivo] = useState(false);
+
 
   const iniciarGeneracionAutomatica = () => {
     if (intervalo) {
       Alert.alert('Ya iniciado', 'La generación automática ya está corriendo.');
       return;
     }
+
+    Alert.alert('Inicio', 'La generación automática ha comenzado.');
+    setMonitoreoActivo(true); // Mostrar mensaje en pantalla
+
+    // Ocultar el mensaje después de 5 segundos
+    setTimeout(() => {
+      setMonitoreoActivo(false);
+    }, 5000);
 
     const tipos = ['temperatura', 'humedad', 'gas'];
     const modelos = ['X100', 'Y200', 'Z300', 'T400'];
@@ -33,16 +40,14 @@ export default function NumSala() {
         tipoAleatorio,
         valorAleatorio,
         modeloAleatorio,
-        'activo' // estado fijo
+        'activo'
       );
 
       cargarSensores();
-    }, 5000);
+    }, 3000);
 
     setIntervalo(nuevoIntervalo);
   };
-
-
 
   const cargarSensores = async () => {
     const data = await obtenerSensoresPorSala(nombre as string);
@@ -59,25 +64,6 @@ export default function NumSala() {
     if (user) {
       setUsuario(JSON.parse(user));
     }
-  };
-
-  const handleAgregarSensor = async () => {
-    if (!tipoSensor || !valor || !modelo || !estado) {
-      Alert.alert('Error', 'Completa todos los campos');
-      return;
-    }
-    await agregarSensorASala(
-      nombre as string,
-      tipoSensor,
-      parseFloat(valor),
-      modelo,
-      estado
-    );
-    setTipoSensor('');
-    setValor('');
-    setModelo('');
-    setEstado('activo');
-    cargarSensores();
   };
 
   const handleLimpiarSensores = async () => {
@@ -97,7 +83,7 @@ export default function NumSala() {
       ]
     );
   };
-  
+
   const toggleEstadoSensor = async (sensorId: string, estadoActual: string) => {
     const nuevoEstado = estadoActual === 'activo' ? 'inactivo' : 'activo';
     await actualizarEstadoSensor(nombre as string, sensorId, nuevoEstado);
@@ -105,54 +91,63 @@ export default function NumSala() {
   };
 
 
-const formatearValor = (tipo: string, valor: number) => {
-  switch (tipo) {
-    case 'temperatura':
-      return `${valor.toFixed(2)} °C`;
-    case 'humedad':
-      return `${valor.toFixed(2)} %`;
-    case 'gas':
-      return valor > 50 ? 'Se ha detectado gas' : 'Sin gas detectado';
-    default:
-      return valor.toString();
-  }
-};
+  const formatearValor = (tipo: string, valor: number) => {
+    switch (tipo) {
+      case 'temperatura':
+        return `${valor.toFixed(2)} °C`;
+      case 'humedad':
+        return `${valor.toFixed(2)} %`;
+      case 'gas':
+        return valor > 50 ? 'Se ha detectado gas' : 'Sin gas detectado';
+      default:
+        return valor.toString();
+    }
+  };
 
-const renderItem = ({ item }: any) => (
-  <View style={styles.sensorItem}>
-    <Text style={styles.sensorTipo}>{item.tipo.toUpperCase()}</Text>
-    <Text>Modelo: {item.modelo}</Text>
-    <Text>Valor: {formatearValor(item.tipo, item.valor)}</Text>
-    <Text>Estado: {item.estado}</Text>
-    <Text>Sala: {nombre}</Text>
-    <Text>
-      Fecha: {new Date(item.fecha?.seconds * 1000).toLocaleString()}
-    </Text>
-    {usuario?.rol === 'admin' && (
-      <Pressable
-        onPress={() => toggleEstadoSensor(item.id, item.estado)}
-        style={[
-          styles.boton,
-          { backgroundColor: item.estado === 'activo' ? '#cc3300' : '#339933', marginTop: 8 }
-        ]}
-      >
-        <Text style={{ color: 'white' }}>
-          Cambiar a {item.estado === 'activo' ? 'inactivo' : 'activo'}
-        </Text>
-      </Pressable>
-    )}
-  </View>
-);
+  const renderItem = ({ item }: any) => (
+    <View style={styles.sensorItem}>
+      <Text style={styles.sensorTipo}>{item.tipo.toUpperCase()}</Text>
+      <Text style={styles.sensorTexto}>Modelo: {item.modelo}</Text>
+      <Text style={styles.sensorTexto}>Valor: {formatearValor(item.tipo, item.valor)}</Text>
+      <Text style={styles.sensorTexto}>Estado: {item.estado}</Text>
+      <Text style={styles.sensorTexto}>Sala: {nombre}</Text>
+      <Text style={styles.sensorTexto}>
+        Fecha: {new Date(item.fecha?.seconds * 1000).toLocaleString()}
+      </Text>
+      {usuario?.rol === 'admin' && (
+        <Pressable
+          onPress={() => toggleEstadoSensor(item.id, item.estado)}
+          style={[
+            styles.cambiarEstadoBoton,
+            { backgroundColor: item.estado === 'activo' ? '#cc3300' : '#339933' }
+          ]}
+        >
+          <Text style={styles.botonTexto}>
+            Cambiar a {item.estado === 'activo' ? 'inactivo' : 'activo'}
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  );
+
 
 
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>Sensores de: {nombre}</Text>
+      <Text style={styles.titulo}>{nombre}</Text>
 
-      {usuario?.rol === 'admin' && (
-        <View style={styles.inputContainer}>
-          <Pressable onPress={iniciarGeneracionAutomatica} style={styles.boton}>
-            <Text style={{ color: 'white' }}>Empezar a monitorear</Text>
+      <FlatList
+        data={sensores}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      />
+
+      {/* Botones de acciones */}
+      {(usuario?.rol === 'admin' || usuario?.rol === 'invitado') && (
+        <View style={styles.botonesContainer}>
+          <Pressable onPress={iniciarGeneracionAutomatica} style={styles.botonVerde}>
+            <Text style={styles.botonTexto}>Empezar a Monitorear</Text>
           </Pressable>
 
           <Pressable
@@ -160,77 +155,118 @@ const renderItem = ({ item }: any) => (
               if (intervalo) {
                 clearInterval(intervalo);
                 setIntervalo(null);
-                Alert.alert('Detenido', 'La generación automática se ha detenido.');
+                Alert.alert('Se ha detenido el monitoreo');
               }
             }}
-            style={[styles.boton, { backgroundColor: '#cc0000', marginTop: 10 }]}
+            style={styles.botonRojo}
           >
-            <Text style={{ color: 'white' }}>Detener monitoreo</Text>
+            <Text style={styles.botonTexto}>Detener Monitoreo</Text>
           </Pressable>
-
         </View>
       )}
 
-
-
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+      <View style={styles.botonesAbajo}>
         <Pressable
-          onPress={() =>
-            router.push({ pathname: 'nombre/historial', params: { nombre } })
-          }
-          style={[styles.boton, { flex: 1, marginRight: 5, backgroundColor: '#666' }]}
+          onPress={() => router.push({ pathname: 'nombre/historial', params: { nombre } })}
+          style={styles.botonGris}
         >
-          <Text style={{ color: 'white', textAlign: 'center' }}>Ver Historial</Text>
+          <Text style={styles.botonTexto}>Ver Historial</Text>
         </Pressable>
+
         {usuario?.rol === 'admin' && (
-          <Pressable
-            onPress={handleLimpiarSensores}
-            style={[styles.boton, { flex: 1, marginLeft: 5, backgroundColor: '#990000' }]}
-          >
-            <Text style={{ color: 'white', textAlign: 'center' }}>Limpiar Sensores</Text>
+          <Pressable onPress={handleLimpiarSensores} style={styles.botonOscuro}>
+            <Text style={styles.botonTexto}>Limpiar Sensores</Text>
           </Pressable>
         )}
       </View>
-
-
-      <FlatList
-        data={sensores}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 50 }}
-      />
     </View>
   );
+
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#eef' },
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#f2f4f8',
+  },
   titulo: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center'
-  },
-  inputContainer: { marginBottom: 20, gap: 10 },
-  input: {
-    backgroundColor: 'white',
-    padding: 10,
-    borderRadius: 8,
-    borderColor: '#aaa',
-    borderWidth: 1
-  },
-  boton: {
-    backgroundColor: '#006699',
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center'
+    color: '#003366',
+    textAlign: 'center',
+    marginBottom: 12,
   },
   sensorItem: {
     backgroundColor: 'white',
-    padding: 15,
+    padding: 12,
     marginBottom: 10,
     borderRadius: 10,
-    elevation: 2
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
   },
-  sensorTipo: { fontWeight: 'bold', fontSize: 16, marginBottom: 5 }
+  sensorTipo: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 6,
+    color: '#2d3436',
+  },
+  sensorTexto: {
+    fontSize: 14,
+    marginBottom: 2,
+    color: '#636e72',
+  },
+  cambiarEstadoBoton: {
+    marginTop: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+
+  botonesContainer: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  botonVerde: {
+    backgroundColor: '#2ecc71',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  botonRojo: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  botonGris: {
+    backgroundColor: '#7f8c8d',
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginRight: 6,
+  },
+  botonOscuro: {
+    backgroundColor: '#34495e',
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginLeft: 6,
+  },
+  botonesAbajo: {
+    flexDirection: 'row',
+    marginTop: 16,
+    justifyContent: 'space-between',
+  },
+  botonTexto: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });
