@@ -2,17 +2,24 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, BackHandler, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import 'react-native-gesture-handler';
-import { crearSala, eliminarSala, obtenerSalas } from '../database/db';
+import { crearSala, eliminarSala, obtenerSalas, obtenerSensoresPorSala } from '../database/db'; // Agrego obtenerSensoresPorSala
 
 export default function Index1() {
   const [nombreSala, setNombreSala] = useState('');
   const [salas, setSalas] = useState<any[]>([]);
   const [usuario, setUsuario] = useState<any>(null);
+  const [alertas, setAlertas] = useState<{ sala: string; mensaje: string }[]>([]); // Estado para alertas
 
   useEffect(() => {
     cargarUsuario();
     cargarSalas();
+
+    // Intervalo para checar alertas cada 5 segundos
+    const intervaloAlertas = setInterval(() => {
+      verificarAlertas();
+    }, 5000);
+
+    return () => clearInterval(intervaloAlertas);
   }, []);
 
   const cargarUsuario = async () => {
@@ -25,6 +32,29 @@ export default function Index1() {
   const cargarSalas = async () => {
     const data = await obtenerSalas();
     setSalas(data);
+  };
+
+  // Función para verificar sensores críticos y generar alertas
+  const verificarAlertas = async () => {
+    const nuevasAlertas: { sala: string; mensaje: string }[] = [];
+
+    for (const sala of salas) {
+      const sensores = await obtenerSensoresPorSala(sala.nombre);
+
+      sensores.forEach((sensor: any) => {
+        if (sensor.tipo === 'gas' && sensor.valor > 50) {
+          nuevasAlertas.push({ sala: sala.nombre, mensaje: `¡Gas detectado en la sala ${sala.nombre}!` });
+        }
+        if (sensor.tipo === 'temperatura' && sensor.valor > 30) {
+          nuevasAlertas.push({ sala: sala.nombre, mensaje: `Temperatura alta (${sensor.valor.toFixed(1)}°C) en la sala ${sala.nombre}` });
+        }
+        if (sensor.tipo === 'humedad' && sensor.valor > 70) {
+          nuevasAlertas.push({ sala: sala.nombre, mensaje: `Humedad alta (${sensor.valor.toFixed(1)}%) en la sala ${sala.nombre}` });
+        }
+      });
+    }
+
+    setAlertas(nuevasAlertas);
   };
 
   const handleCrearSala = async () => {
@@ -51,9 +81,9 @@ export default function Index1() {
     ]);
   };
 
+  // Navegar a sala
   const irASala = (nombre: string) => {
     router.push(`/salas/${nombre}`);
-
   };
 
   const renderItem = ({ item }: any) => (
@@ -63,7 +93,6 @@ export default function Index1() {
       <Text style={styles.salaDetalle}>
         Fecha: {new Date(item.fechaCreacion.seconds * 1000).toLocaleString()}
       </Text>
-
       {usuario?.rol === 'admin' && (
         <Pressable onPress={() => handleEliminarSala(item.id)} style={styles.eliminarBtn}>
           <Text style={{ color: 'white' }}>Eliminar</Text>
@@ -72,55 +101,62 @@ export default function Index1() {
     </Pressable>
   );
 
-
-return (
-  <View style={styles.container}>
-    <View>
-      <Text style={styles.titulo}>Salas del Laboratorio</Text>
-
-      {usuario?.rol === 'admin' && (
-        <View style={styles.crearSalaContainer}>
-          <TextInput
-            placeholder="Nombre de la sala"
-            value={nombreSala}
-            onChangeText={setNombreSala}
-            style={styles.input}
-          />
-          <Pressable onPress={handleCrearSala} style={styles.botonCrear}>
-            <Text style={styles.botonTexto}>Crear</Text>
-          </Pressable>
+  return (
+    <View style={styles.container}>
+      {/* Mostrar alertas arriba */}
+      {alertas.length > 0 && (
+        <View style={styles.alertaContainer}>
+          {alertas.map((alerta, index) => (
+            <Text key={index} style={styles.alertaTexto}>⚠️ {alerta.mensaje}</Text>
+          ))}
         </View>
       )}
 
-      <FlatList
-        data={salas}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 20 }}
-      />
+      <View>
+        <Text style={styles.titulo}>Salas del Laboratorio</Text>
+
+        {usuario?.rol === 'admin' && (
+          <View style={styles.crearSalaContainer}>
+            <TextInput
+              placeholder="Nombre de la sala"
+              value={nombreSala}
+              onChangeText={setNombreSala}
+              style={styles.input}
+            />
+            <Pressable onPress={handleCrearSala} style={styles.botonCrear}>
+              <Text style={styles.botonTexto}>Crear</Text>
+            </Pressable>
+          </View>
+        )}
+
+        <FlatList
+          data={salas}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        />
+      </View>
+
+      <View style={styles.footerButtons}>
+        <Pressable
+          onPress={async () => {
+            await AsyncStorage.removeItem('usuario');
+            router.replace('/login');
+          }}
+          style={styles.botonSecundario}
+        >
+          <Text style={styles.botonTexto}>Cerrar sesión</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => BackHandler.exitApp()}
+          style={styles.botonSalir}
+        >
+          <Text style={styles.botonTexto}>Salir de la App</Text>
+        </Pressable>
+      </View>
     </View>
-
-    <View style={styles.footerButtons}>
-      <Pressable
-        onPress={async () => {
-          await AsyncStorage.removeItem('usuario');
-          router.replace('/login');
-        }}
-        style={styles.botonSecundario}
-      >
-        <Text style={styles.botonTexto}>Cerrar sesión</Text>
-      </Pressable>
-
-      <Pressable
-        onPress={() => BackHandler.exitApp()}
-        style={styles.botonSalir}
-      >
-        <Text style={styles.botonTexto}>Salir de la App</Text>
-      </Pressable>
-    </View>
-  </View>
-);
-
+  );
 }
 
 const styles = StyleSheet.create({
@@ -129,6 +165,17 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f5f7fa',
     justifyContent: 'space-between',
+  },
+  alertaContainer: {
+    backgroundColor: '#ffcccc',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  alertaTexto: {
+    color: '#cc0000',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   titulo: {
     fontSize: 24,
@@ -201,6 +248,5 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     alignItems: 'center',
-  }
+  },
 });
-

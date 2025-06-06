@@ -6,7 +6,7 @@ import { existeUsuario, insertarUsuario } from '../database/db';
 export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rol, setRol] = useState<'admin' | 'invitado'>('invitado'); // valor por defecto
+  const rol: 'invitado' = 'invitado'; // rol fijo sin opción de cambiar
 
   const registrar = async () => {
     if (email.trim() === '' || password.trim() === '') {
@@ -35,31 +35,32 @@ export default function Register() {
       <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2913/2913465.png' }} style={styles.image} />
       <Text style={styles.title}>Registro de Usuario</Text>
 
-      <TextInput placeholder="ejemplo@correo.com" value={email} onChangeText={setEmail} style={styles.input} keyboardType="email-address" autoCapitalize="none" />
-      <TextInput placeholder="Contraseña" value={password} onChangeText={setPassword} style={styles.input} secureTextEntry />
+      <TextInput
+        placeholder="ejemplo@correo.com"
+        value={email}
+        onChangeText={setEmail}
+        style={styles.input}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <TextInput
+        placeholder="Contraseña"
+        value={password}
+        onChangeText={setPassword}
+        style={styles.input}
+        secureTextEntry
+      />
 
-      <Text style={{ fontWeight: 'bold', marginBottom: 10 }}>Selecciona un rol:</Text>
-      <View style={{ flexDirection: 'row', marginBottom: 20, gap: 10 }}>
-        <Pressable
-          style={[styles.rolButton, rol === 'admin' && styles.selectedRol]}
-          onPress={() => setRol('admin')}
-        >
-          <Text style={styles.rolButtonText}>Admin</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.rolButton, rol === 'invitado' && styles.selectedRol]}
-          onPress={() => setRol('invitado')}
-        >
-          <Text style={styles.rolButtonText}>Invitado</Text>
-        </Pressable>
-      </View>
+      {/* Ya no mostramos selección de rol */}
 
       <Pressable style={styles.button} onPress={registrar}>
         <Text style={styles.buttonText}>Registrarse</Text>
       </Pressable>
 
       <Pressable onPress={() => router.replace('/login')}>
-        <Text style={{ marginTop: 20, color: '#008080', textAlign: 'center' }}>¿Ya tienes cuenta? Inicia sesión</Text>
+        <Text style={{ marginTop: 20, color: '#008080', textAlign: 'center' }}>
+          ¿Ya tienes cuenta? Inicia sesión
+        </Text>
       </Pressable>
     </View>
   );
@@ -83,19 +84,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center'
   },
-  buttonText: { color: 'white', fontWeight: 'bold' },
-  rolButton: {
-    backgroundColor: '#ccc',
-    padding: 10,
-    borderRadius: 10,
-    flex: 1,
-    alignItems: 'center'
-  },
-  selectedRol: {
-    backgroundColor: '#008080'
-  },
-  rolButtonText: {
-    color: 'white',
-    fontWeight: 'bold'
-  }
+  buttonText: { color: 'white', fontWeight: 'bold' }
 });
