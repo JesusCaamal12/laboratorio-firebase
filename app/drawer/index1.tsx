@@ -14,15 +14,17 @@ export default function Index1() {
 
   useEffect(() => {
     cargarUsuario();
-    cargarSalas();
 
-  const intervalo = setInterval(() => {
-      cargarSalas();
-      verificarAlertas();
+    const intervalo = setInterval(async () => {
+      const data = await cargarSalas();
+      verificarAlertas(data);
     }, 2000);
 
     return () => clearInterval(intervalo);
   }, []);
+
+
+
 
   const cargarUsuario = async () => {
     const user = await AsyncStorage.getItem('usuario');
@@ -34,14 +36,18 @@ export default function Index1() {
   const cargarSalas = async () => {
     const data = await obtenerSalas();
     setSalas(data);
+    return data;
   };
 
-  const verificarAlertas = async () => {
-    if (salas.length === 0) return;
+
+  const verificarAlertas = async (salasParaVerificar?: any[]) => {
+    const salasActuales = salasParaVerificar || salas;
+
+    if (salasActuales.length === 0) return;
 
     const nuevasAlertas: { sala: string; mensaje: string }[] = [];
 
-    for (const sala of salas) {
+    for (const sala of salasActuales) {
       const sensores = await obtenerSensoresPorSala(sala.nombre);
 
       sensores.forEach((sensor: any) => {
@@ -69,7 +75,6 @@ export default function Index1() {
     if (nuevasAlertas.length > 0) {
       setAlertas(nuevasAlertas);
 
-      // Animar aparición
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 500,
@@ -86,6 +91,7 @@ export default function Index1() {
     }
   };
 
+
   const handleCrearSala = async () => {
     if (nombreSala.trim() === '') {
       Alert.alert('Error', 'Ingresa un nombre de sala');
@@ -96,15 +102,15 @@ export default function Index1() {
     cargarSalas();
   };
 
-const handleEliminarSala = async (id: string) => {
+  const handleEliminarSala = async (id: string) => {
     Alert.alert('Confirmación', '¿Estás seguro de eliminar esta sala?', [
       { text: 'Cancelar' },
       {
         text: 'Eliminar',
         style: 'destructive',
         onPress: async () => {
-+         // 1) Detenemos el monitoreo en segundo plano
-+         detenerMonitoreoGlobal();
+          +         // 1) Detenemos el monitoreo en segundo plano
+            +         detenerMonitoreoGlobal();
           // 2) Borramos la sala de la base de datos
           await eliminarSala(id);
           // 3) Volvemos a recargar la lista
@@ -117,7 +123,7 @@ const handleEliminarSala = async (id: string) => {
   const irASala = (nombre: string) => {
     router.push(`/salas/${nombre}`);
   };
-  
+
 
   const renderItem = ({ item }: any) => (
     <Pressable onPress={() => irASala(item.nombre)} style={styles.salaItem}>
