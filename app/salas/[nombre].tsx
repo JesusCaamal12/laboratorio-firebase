@@ -157,12 +157,15 @@ export default function NumSala() {
     <View style={styles.container}>
       <Text style={styles.titulo}>{nombre}</Text>
 
-      <FlatList
-        data={sensores}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 20 }}
-      />
+      <View style={{ flex: 1, marginBottom: 16 }}>
+        <FlatList
+          data={sensores}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={{ paddingBottom: 16 }}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
 
       {/* Botones de acciones */}
       {(usuario?.rol === 'admin' || usuario?.rol === 'invitado') && (
