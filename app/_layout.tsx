@@ -3,16 +3,10 @@ export default function Layout() {
   return (
     <Stack initialRouteName="login">
       <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="registro" options={{ title: 'registro' }} />
+      <Stack.Screen name="registro" options={{ title: 'Registro' }} />
       <Stack.Screen name="index1" options={{ title: 'Laboratorio' }} />
       <Stack.Screen name="[nombre]" options={{ title: 'Salas' }} />
       <Stack.Screen name="historial" options={{ title: 'historial' }} />
-      <Stack.Screen name="sala1" options={{ title: 'Sala 1' }} />
-      <Stack.Screen name="sala2" options={{ title: 'Sala 2' }} />
-      <Stack.Screen name="historialSala1" options={{ title: 'Historial Sala 1' }} />
-      <Stack.Screen name="historialSala2" options={{ title: 'Historial Sala 2' }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} // Aquí irá el Drawer
-      />
     </Stack>
   );
 } 

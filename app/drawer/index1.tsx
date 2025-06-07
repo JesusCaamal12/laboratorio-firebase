@@ -93,14 +93,27 @@ export default function Index1() {
 
 
   const handleCrearSala = async () => {
-    if (nombreSala.trim() === '') {
+    const nombre = nombreSala.trim().toLowerCase();
+
+    if (nombre === '') {
       Alert.alert('Error', 'Ingresa un nombre de sala');
       return;
     }
+
+    // Verificar si ya existe una sala con ese nombre (ignorando mayúsculas)
+    const salasExistentes = await obtenerSalas();
+    const yaExiste = salasExistentes.some(s => s.nombre.trim().toLowerCase() === nombre);
+
+    if (yaExiste) {
+      Alert.alert('Error', 'Ya existe una sala con ese nombre');
+      return;
+    }
+
     await crearSala(nombreSala, usuario?.email || 'desconocido');
     setNombreSala('');
     cargarSalas();
   };
+
 
   const handleEliminarSala = async (id: string) => {
     Alert.alert('Confirmación', '¿Estás seguro de eliminar esta sala?', [
