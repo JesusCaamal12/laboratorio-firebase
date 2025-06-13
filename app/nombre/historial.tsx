@@ -4,8 +4,8 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { obtenerHistorialPorSala } from '../../database/db';
 
 export default function HistorialSala() {
-    const { nombre } = useLocalSearchParams(); // nombre de la sala
-    console.log('Nombre de la sala:', nombre); //log
+    const { nombre } = useLocalSearchParams();
+    console.log('Nombre de la sala:', nombre); 
     const [historial, setHistorial] = useState<any[]>([]);
 
     useEffect(() => {

@@ -2,16 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import {
-  actualizarEstadoSensor,
-  agregarSensorASala,
-  limpiarSensoresDeSala,
-  obtenerSensoresPorSala,
-} from '../../database/db';
+import { actualizarEstadoSensor, agregarSensorASala, limpiarSensoresDeSala, obtenerSensoresPorSala } from '../../database/db';
 
-// ---------------
-// 1) Variable global al módulo para el intervalo
-// ---------------
+//  Variable global al módulo para el intervalo
 let intervaloGlobal: NodeJS.Timeout | null = null;
 export default function NumSala() {
   const { nombre } = useLocalSearchParams(); // nombre de la sala
@@ -19,13 +12,10 @@ export default function NumSala() {
   const [usuario, setUsuario] = useState<any>(null);
   const [monitoreoActivo, setMonitoreoActivo] = useState(false);
 
-  // ---------------  
-  // 2) Carga inicial de sensores y usuario (sin limpiar intervaloGlobal en desmontaje)
-  // ---------------
+  // Carga inicial de sensores y usuario
   useEffect(() => {
     cargarSensores();
     cargarUsuario();
-    // NO hacemos clearInterval aquí, para que si ya existía un intervaloGlobal, siga corriendo
   }, []);
 
   const cargarSensores = async () => {
@@ -40,9 +30,9 @@ export default function NumSala() {
     }
   };
 
-  // ---------------  
-  // 3) Iniciar generación: guarda el setInterval en intervaloGlobal (si no existe)
-  // ---------------
+ 
+  // Iniciar generación: guarda el setInterval en intervaloGlobal (si no existe)
+
   const iniciarGeneracionAutomatica = () => {
     if (intervaloGlobal) {
       Alert.alert('Ya iniciado', 'La generación automática ya está corriendo.');
@@ -167,7 +157,6 @@ export default function NumSala() {
         />
       </View>
 
-      {/* Botones de acciones */}
       {(usuario?.rol === 'admin' || usuario?.rol === 'invitado') && (
         <View style={styles.botonesContainer}>
           <Pressable onPress={iniciarGeneracionAutomatica} style={styles.botonVerde}>

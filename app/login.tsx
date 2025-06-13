@@ -34,7 +34,6 @@ const iniciarSesion = async () => {
       rol: usuario.rol
     }));
 
-    // Redirección a ruta única
     router.replace('/drawer/index1');
 
   } catch (error) {

@@ -1,9 +1,6 @@
-// Importa Firestore y funciones necesarias
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, Timestamp, updateDoc, where } from 'firebase/firestore';
-import { db } from './firebase'; // ya tienes la conexión a Firebase
+import { db } from './firebase';
 
-// Función para insertar un usuario
-// db.ts
 export const insertarUsuario = async (email: string, password: string, rol: string) => {
   try {
     const docRef = await addDoc(collection(db, 'usuarios'), {
